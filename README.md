@@ -34,99 +34,70 @@
 
 ### Путь клиента и заведения
 
-```plantuml
-@startuml CJM_Avito_Kitchen
-!theme plain
-skinparam backgroundColor #FAFAFA
-skinparam activity {
-  BackgroundColor #E8F5E9
-  BorderColor #388E3C
-  FontColor #1B5E20
-  StartColor #43A047
-  EndColor #E53935
-  ArrowColor #388E3C
-}
-skinparam swimlaneBackgroundColor #F1F8E9
-skinparam swimlaneBorderColor #AED581
+```mermaid
+flowchart TD
+    subgraph CLIENT["👤 Клиент"]
+        C1([Открывает Авито.Кухня])
+        C2[GET /restaurants\nПросматривает список ресторанов]
+        C3[Выбирает ресторан]
+        C4[GET /restaurants/id/menu\nПросматривает меню]
+        C5[Добавляет блюда в корзину]
+        C6{Корзина не пуста?}
+        C7[POST /orders\nОформляет заказ]
+        C8[Получает order_id\nСтатус: PENDING]
+        C9[GET /orders/id\nОтслеживает статус]
+        C10{Статус\nDELIVERED?}
+        C11([Получает заказ 🎉])
+        C12([Продолжает выбор блюд])
+    end
 
-title Авито.Кухня — Customer Journey Map
+    subgraph RESTAURANT["🏪 Заведение — Mock Restaurant API"]
+        R1[POST /webhook/order\nПолучает вебхук от Main API]
+        R2{Все позиции\nдоступны?}
+        R3[Статус → CONFIRMED\nПодтверждает заказ]
+        R4[Готовит заказ]
+        R5[PATCH /orders/id/status\nСтатус → READY]
+        R6[Передаёт курьеру]
+        R7[PATCH /orders/id/status\nСтатус → DELIVERED]
+        R8([Статус → CANCELLED\nОтклоняет заказ])
+    end
 
-|#DCEDC8| Клиент |
-start
-:Открывает Авито.Кухня\n(веб-клиент);
-:Просматривает список ресторанов\nGET /restaurants;
-:Выбирает ресторан;
-:Просматривает меню\nGET /restaurants/{id}/menu;
-:Добавляет блюда в корзину\n(клиентская логика);
+    C1 --> C2 --> C3 --> C4 --> C5 --> C6
+    C6 -- да --> C7 --> C8 --> C9 --> C10
+    C10 -- нет, ждёт --> C9
+    C10 -- да --> C11
+    C6 -- нет --> C12
 
-if (Корзина не пуста?) then (да)
-  :Оформляет заказ\nPOST /orders;
-  :Получает подтверждение\n(order_id, статус PENDING);
-  :Отслеживает статус заказа\nGET /orders/{id};
-
-  repeat
-    :Проверяет статус;
-  repeat while (Статус не DELIVERED?) is (нет, ждёт)
-  -> да;
-
-  :Получает заказ!;
-  stop
-else (нет)
-  :Продолжает выбор блюд;
-  stop
-endif
-
-|#FFF9C4| Заведение (Mock Restaurant API) |
-:Получает вебхук\nPOST /webhook/order\n(от Main API);
-:Проверяет позиции заказа;
-
-if (Все позиции доступны?) then (да)
-  :Подтверждает заказ\n(статус CONFIRMED);
-  :Готовит заказ;
-  :Уведомляет о готовности\nPATCH /orders/{id}/status\n-> статус READY;
-  :Передаёт заказ курьеру;
-  :Заказ доставлен\nPATCH /orders/{id}/status\n-> статус DELIVERED;
-  stop
-else (нет)
-  :Отклоняет заказ\n(статус CANCELLED);
-  stop
-endif
-
-@enduml
+    C7 -- вебхук --> R1
+    R1 --> R2
+    R2 -- да --> R3 --> R4 --> R5 --> R6 --> R7
+    R2 -- нет --> R8
+    R7 -- обновляет статус --> C10
 ```
 
 ---
 
 ## 🏗️ Архитектура системы — C4 Container Diagram
 
-```plantuml
-@startuml C4_Container_Avito_Kitchen
-!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+```mermaid
+flowchart TD
+    USER(["👤 Клиент\nПользователь платформы,\nзаказывает еду через браузер"])
 
-LAYOUT_WITH_LEGEND()
+    subgraph SYSTEM["Авито.Кухня"]
+        WEB["🌐 Web Client\n─────────────\nBrowser / SPA\n─────────────\nПользовательский интерфейс.\nПросмотр меню, оформление\nи отслеживание заказов."]
 
-title Авито.Кухня — C4 Container Diagram (Level 2)
+        API["⚙️ Main API\n─────────────\nPython 3.13 / FastAPI\n─────────────\nМодульный монолит.\nОбрабатывает запросы клиента,\nуправляет заказами,\nотправляет вебхуки в рестораны."]
 
-Person(client, "Клиент", "Пользователь платформы,\nзаказывает еду через браузер")
+        DB[("🗄️ PostgreSQL 16\n─────────────\nРеляционная СУБД\n─────────────\nХранит рестораны, меню,\nзаказы и их позиции.\nМиграции через Alembic.")]
 
-System_Boundary(avito_kitchen, "Авито.Кухня") {
+        MOCK["🏪 Mock Restaurant API\n─────────────\nPython 3.13 / FastAPI\n─────────────\nЭмулирует логику\nресторана-партнёра.\nПринимает вебхуки,\nобновляет статус заказа."]
+    end
 
-  Container(web_client, "Web Client", "Browser / SPA", "Пользовательский интерфейс.\nПросмотр меню, оформление\nи отслеживание заказов.")
-
-  Container(main_api, "Main API", "Python 3.13 / FastAPI", "Модульный монолит.\nОбрабатывает запросы клиента,\nуправляет заказами,\nотправляет вебхуки в рестораны.")
-
-  ContainerDb(postgres, "PostgreSQL 16", "Реляционная СУБД", "Хранит рестораны, меню,\nзаказы и их позиции.\nМиграции через Alembic.")
-
-  Container(mock_restaurant, "Mock Restaurant API", "Python 3.13 / FastAPI", "Эмулирует логику\nресторана-партнёра.\nПринимает вебхуки,\nобновляет статус заказа.")
-}
-
-Rel(client, web_client, "Открывает", "HTTPS / Browser")
-Rel(web_client, main_api, "REST API запросы", "HTTP/JSON")
-Rel(main_api, postgres, "Читает / Пишет", "asyncpg / SQLAlchemy")
-Rel(main_api, mock_restaurant, "Отправляет вебхук о заказе", "HTTP POST /webhook/order")
-Rel(mock_restaurant, main_api, "Обновляет статус заказа", "HTTP PATCH /orders/{id}/status")
-
-@enduml
+    USER -- "HTTPS / Browser" --> WEB
+    WEB -- "HTTP/JSON\nREST API запросы" --> API
+    API -- "asyncpg / SQLAlchemy\nЧитает / Пишет" --> DB
+    API -- "HTTP POST /webhook/order\nОтправляет вебхук о заказе" --> MOCK
+    MOCK -- "HTTP PATCH /orders/id/status\nОбновляет статус заказа" --> API
 ```
 
 ---
@@ -174,46 +145,32 @@ app/
 
 ### Взаимодействие модулей
 
-```plantuml
-@startuml Module_Interaction
-!theme plain
-skinparam packageStyle rectangle
-skinparam backgroundColor #FAFAFA
-skinparam component {
-  BackgroundColor #E3F2FD
-  BorderColor #1565C0
-  FontColor #0D47A1
-}
+```mermaid
+flowchart LR
+    subgraph MAIN_API["Main API"]
+        R[restaurants]
+        MI[menu_items]
+        O[orders]
+        OI[order_items]
+        C[core]
+    end
 
-title Авито.Кухня — Взаимодействие модулей Main API
+    PG[(PostgreSQL)]
+    MRA["Mock Restaurant API"]
 
-package "Main API" {
-  [restaurants] as R
-  [menu_items] as MI
-  [orders] as O
-  [order_items] as OI
-  [core] as C
-}
+    R -- использует DB session --> C
+    MI -- использует DB session --> C
+    O -- использует DB session --> C
+    OI -- использует DB session --> C
 
-database "PostgreSQL" as PG
+    MI -. FK: restaurant_id .-> R
+    OI -. FK: order_id .-> O
+    OI -. FK: menu_item_id .-> MI
 
-cloud "Mock Restaurant API" as MRA
+    O -- "HTTP POST /webhook/order" --> MRA
+    MRA -- "HTTP PATCH /orders/id/status" --> O
 
-R --> C : использует DB session
-MI --> C : использует DB session
-O --> C : использует DB session
-OI --> C : использует DB session
-
-MI ..> R : FK: restaurant_id
-OI ..> O : FK: order_id
-OI ..> MI : FK: menu_item_id
-
-O --> MRA : HTTP POST /webhook/order\n(при создании заказа)
-MRA --> O : HTTP PATCH /orders/{id}/status\n(обновление статуса)
-
-C --> PG : asyncpg
-
-@enduml
+    C -- asyncpg --> PG
 ```
 
 ---
@@ -233,70 +190,52 @@ C --> PG : asyncpg
 
 ### Таблицы и связи
 
-```plantuml
-@startuml Database_Schema
-!theme plain
-skinparam backgroundColor #FAFAFA
-skinparam class {
-  BackgroundColor #EDE7F6
-  BorderColor #4527A0
-  FontColor #1A237E
-  HeaderBackgroundColor #7E57C2
-  HeaderFontColor #FFFFFF
-}
+```mermaid
+erDiagram
+    restaurants {
+        UUID id PK
+        VARCHAR name
+        TEXT description
+        VARCHAR address
+        BOOLEAN is_active
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-title Авито.Кухня — Схема базы данных
+    menu_items {
+        UUID id PK
+        UUID restaurant_id FK
+        VARCHAR name
+        TEXT description
+        NUMERIC price
+        BOOLEAN is_available
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-entity "restaurants" as restaurants {
-  * id : UUID <<PK>>
-  --
-  * name : VARCHAR(255) NOT NULL
-  * description : TEXT
-  * address : VARCHAR(500) NOT NULL
-  * is_active : BOOLEAN DEFAULT TRUE
-  * created_at : TIMESTAMPTZ DEFAULT NOW()
-  * updated_at : TIMESTAMPTZ
-}
+    orders {
+        UUID id PK
+        UUID user_id
+        UUID restaurant_id FK
+        VARCHAR status
+        VARCHAR delivery_address
+        NUMERIC total_price
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
 
-entity "menu_items" as menu_items {
-  * id : UUID <<PK>>
-  --
-  * restaurant_id : UUID <<FK>>
-  * name : VARCHAR(255) NOT NULL
-  * description : TEXT
-  * price : NUMERIC(10,2) NOT NULL
-  * is_available : BOOLEAN DEFAULT TRUE
-  * created_at : TIMESTAMPTZ DEFAULT NOW()
-  * updated_at : TIMESTAMPTZ
-}
+    order_items {
+        UUID id PK
+        UUID order_id FK
+        UUID menu_item_id FK
+        INTEGER quantity
+        NUMERIC unit_price
+    }
 
-entity "orders" as orders {
-  * id : UUID <<PK>>
-  --
-  * user_id : UUID NOT NULL
-  * restaurant_id : UUID <<FK>>
-  * status : VARCHAR(20) NOT NULL
-  * delivery_address : VARCHAR(500) NOT NULL
-  * total_price : NUMERIC(10,2) NOT NULL
-  * created_at : TIMESTAMPTZ DEFAULT NOW()
-  * updated_at : TIMESTAMPTZ
-}
-
-entity "order_items" as order_items {
-  * id : UUID <<PK>>
-  --
-  * order_id : UUID <<FK>>
-  * menu_item_id : UUID <<FK>>
-  * quantity : INTEGER NOT NULL
-  * unit_price : NUMERIC(10,2) NOT NULL
-}
-
-restaurants ||--o{ menu_items : "1 ресторан\nимеет N позиций меню"
-restaurants ||--o{ orders : "1 ресторан\nполучает N заказов"
-orders ||--o{ order_items : "1 заказ\nсодержит N позиций"
-menu_items ||--o{ order_items : "1 позиция меню\nвходит в N заказов"
-
-@enduml
+    restaurants ||--o{ menu_items : "имеет"
+    restaurants ||--o{ orders : "получает"
+    orders ||--o{ order_items : "содержит"
+    menu_items ||--o{ order_items : "входит в"
 ```
 
 ### Описание таблиц
