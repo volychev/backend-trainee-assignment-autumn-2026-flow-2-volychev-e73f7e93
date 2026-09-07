@@ -38,7 +38,7 @@ services:
   mock-restaurant:
     build:
       context: .
-      dockerfile: Dockerfile.mock
+      dockerfile: mock_restaurant/Dockerfile
     container_name: avito_kitchen_mock_restaurant
     restart: unless-stopped
     depends_on:
