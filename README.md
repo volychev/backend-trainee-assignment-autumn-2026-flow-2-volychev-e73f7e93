@@ -373,6 +373,7 @@ FastAPI автоматически генерирует интерактивну
 | ADR-005 | Отказ от сервиса авторизации (X-User-ID) | [ADR-005](./docs/adr/ADR-005-no-auth-service.md) |
 | ADR-006 | Стратегия тестирования | [ADR-006](./docs/adr/ADR-006-testing-strategy.md) |
 | ADR-007 | Кастомные исключения и их обработка | [ADR-007](./docs/adr/ADR-007-custom-exceptions.md) |
+| ADR-008 | Настройка CI/CD пайплайна | [ADR-008](./docs/adr/ADR-008-ci-cd-pipeline.md) |
 
 ---
 
@@ -486,6 +487,7 @@ avito-kitchen/
     adr/                      # Architectural Decision Records
  .github/
     workflows/                # CI/CD пайплайны
+       ci.yml                 # Конфигурация GitHub Actions
  docker-compose.yml
  Dockerfile                    # Dockerfile для Main API
  pyproject.toml                # Poetry зависимости
