@@ -1,0 +1,5 @@
+_template.md
+*.pyc
+__pycache__/
+.venv/
+.env
