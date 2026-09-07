@@ -7,6 +7,7 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.core.config import settings
 from app.core.database import Base
 from app.core.dependencies import get_db
 from app.main import app
@@ -18,18 +19,15 @@ from app.restaurants.models import Restaurant
 
 from sqlalchemy.pool import NullPool
 
-TEST_DATABASE_URL = "postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_db"
-
 
 @pytest_asyncio.fixture
 async def engine():
-    test_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool, echo=False)
+    test_engine = create_async_engine(settings.test_database_url, poolclass=NullPool, echo=False)
+
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield test_engine
     await test_engine.dispose()
-
-
 
 
 @pytest_asyncio.fixture(autouse=True)

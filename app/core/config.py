@@ -14,6 +14,10 @@ class Settings(BaseSettings):
         default="postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_db",
         description="Async PostgreSQL connection URL (asyncpg driver)",
     )
+    test_database_url: str = Field(
+        default="postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_db",
+        description="Async PostgreSQL connection URL for tests",
+    )
 
     # Application
     app_host: str = Field(default="0.0.0.0")

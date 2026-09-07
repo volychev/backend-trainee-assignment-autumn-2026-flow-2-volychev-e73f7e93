@@ -11,11 +11,16 @@ from app.orders.models import Order
 async def test_update_status_to_ready(
     client: AsyncClient, order: Order
 ) -> None:
+    # Arrange
+    # (Данные уже подготовлены в фикстуре order)
+
+    # Act
     response = await client.patch(
         f"/orders/{order.id}/status",
         json={"status": OrderStatus.READY},
     )
 
+    # Assert
     assert response.status_code == 200
     assert response.json()["status"] == OrderStatus.READY
 
@@ -24,11 +29,16 @@ async def test_update_status_to_ready(
 async def test_update_status_to_delivered(
     client: AsyncClient, order: Order
 ) -> None:
+    # Arrange
+    # (Данные уже подготовлены в фикстуре order)
+
+    # Act
     response = await client.patch(
         f"/orders/{order.id}/status",
         json={"status": OrderStatus.DELIVERED},
     )
 
+    # Assert
     assert response.status_code == 200
     assert response.json()["status"] == OrderStatus.DELIVERED
 
@@ -37,11 +47,16 @@ async def test_update_status_to_delivered(
 async def test_update_status_to_cancelled(
     client: AsyncClient, order: Order
 ) -> None:
+    # Arrange
+    # (Данные уже подготовлены в фикстуре order)
+
+    # Act
     response = await client.patch(
         f"/orders/{order.id}/status",
         json={"status": OrderStatus.CANCELLED},
     )
 
+    # Assert
     assert response.status_code == 200
     assert response.json()["status"] == OrderStatus.CANCELLED
 
@@ -50,19 +65,29 @@ async def test_update_status_to_cancelled(
 async def test_update_status_invalid_value_returns_422(
     client: AsyncClient, order: Order
 ) -> None:
+    # Arrange
+    # (Данные уже подготовлены в фикстуре order)
+
+    # Act
     response = await client.patch(
         f"/orders/{order.id}/status",
         json={"status": "FLYING"},
     )
 
+    # Assert
     assert response.status_code == 422
 
 
 @pytest.mark.asyncio
 async def test_update_status_unknown_order_returns_404(client: AsyncClient) -> None:
+    # Arrange
+    # (БД пустая или заказ не существует)
+
+    # Act
     response = await client.patch(
         f"/orders/{uuid.uuid4()}/status",
         json={"status": OrderStatus.READY},
     )
 
+    # Assert
     assert response.status_code == 404
