@@ -1,0 +1,94 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  lint-and-typecheck:
+    name: Lint and Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Run Ruff (lint)
+        run: poetry run ruff check .
+
+      - name: Run Ruff (format)
+        run: poetry run ruff format --check .
+
+      - name: Run Mypy
+        run: poetry run mypy app mock_restaurant tests
+
+  test:
+    name: Run Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kitchen
+          POSTGRES_PASSWORD: kitchen
+          POSTGRES_DB: kitchen_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-root
+
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_test_db
+        run: poetry run alembic upgrade head
+
+      - name: Run Pytest
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_test_db
+        run: poetry run pytest -v
+
+  build-check:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Main API Image
+        run: docker build -f Dockerfile .
+
+      - name: Build Mock Restaurant API Image
+        run: docker build -f mock_restaurant/Dockerfile .
