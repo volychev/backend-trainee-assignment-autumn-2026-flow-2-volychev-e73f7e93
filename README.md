@@ -1,4 +1,4 @@
-# 🍽️ Авито.Кухня — MVP платформы доставки еды
+# Авито.Кухня — MVP платформы доставки еды
 
 [![Python 3.13](https://img.shields.io/badge/Python-3.13-blue?logo=python)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-latest-009688?logo=fastapi)](https://fastapi.tiangolo.com/)
@@ -7,7 +7,7 @@
 
 ---
 
-## 📌 Описание проекта
+## Описание проекта
 
 **Авито.Кухня** — MVP-сервис доставки еды, встроенный в экосистему Авито.  
 Платформа объединяет **клиентов**, **рестораны/кафе/магазины** через единый API.
@@ -22,21 +22,21 @@
 
 В рамках MVP реализованы:
 
-- 🔍 Просмотр списка ресторанов и их меню
-- 🛒 Создание заказа из позиций меню
-- 📡 Передача заказа в ресторан через HTTP-вебхук
-- 📦 Обновление статуса заказа рестораном
-- 📄 Автоматическая OpenAPI-документация
+- Просмотр списка ресторанов и их меню
+- Создание заказа из позиций меню
+- Передача заказа в ресторан через HTTP-вебхук
+- Обновление статуса заказа рестораном
+- Автоматическая OpenAPI-документация
 
 ---
 
-## 🗺️ CJM — Customer Journey Map
+## CJM — Customer Journey Map
 
 ### Путь клиента и заведения
 
 ```mermaid
 flowchart TD
-    subgraph CLIENT["👤 Клиент"]
+    subgraph CLIENT[" Клиент"]
         C1([Открывает Авито.Кухня])
         C2[GET /restaurants\nПросматривает список ресторанов]
         C3[Выбирает ресторан]
@@ -47,11 +47,11 @@ flowchart TD
         C8[Получает order_id\nСтатус: PENDING]
         C9[GET /orders/id\nОтслеживает статус]
         C10{Статус\nDELIVERED?}
-        C11([Получает заказ 🎉])
+        C11([Получает заказ ])
         C12([Продолжает выбор блюд])
     end
 
-    subgraph RESTAURANT["🏪 Заведение — Mock Restaurant API"]
+    subgraph RESTAURANT[" Заведение — Mock Restaurant API"]
         R1[POST /webhook/order\nПолучает вебхук от Main API]
         R2{Все позиции\nдоступны?}
         R3[Статус → CONFIRMED\nПодтверждает заказ]
@@ -77,20 +77,20 @@ flowchart TD
 
 ---
 
-## 🏗️ Архитектура системы — C4 Container Diagram
+## Архитектура системы — C4 Container Diagram
 
 ```mermaid
 flowchart TD
-    USER(["👤 Клиент\nПользователь платформы,\nзаказывает еду через браузер"])
+    USER([" Клиент\nПользователь платформы,\nзаказывает еду через браузер"])
 
     subgraph SYSTEM["Авито.Кухня"]
-        WEB["🌐 Web Client\n─────────────\nBrowser / SPA\n─────────────\nПользовательский интерфейс.\nПросмотр меню, оформление\nи отслеживание заказов."]
+        WEB[" Web Client\n\nBrowser / SPA\n\nПользовательский интерфейс.\nПросмотр меню, оформление\nи отслеживание заказов."]
 
-        API["⚙️ Main API\n─────────────\nPython 3.13 / FastAPI\n─────────────\nМодульный монолит.\nОбрабатывает запросы клиента,\nуправляет заказами,\nотправляет вебхуки в рестораны."]
+        API[" Main API\n\nPython 3.13 / FastAPI\n\nМодульный монолит.\nОбрабатывает запросы клиента,\nуправляет заказами,\nотправляет вебхуки в рестораны."]
 
-        DB[("🗄️ PostgreSQL 16\n─────────────\nРеляционная СУБД\n─────────────\nХранит рестораны, меню,\nзаказы и их позиции.\nМиграции через Alembic.")]
+        DB[(" PostgreSQL 16\n\nРеляционная СУБД\n\nХранит рестораны, меню,\nзаказы и их позиции.\nМиграции через Alembic.")]
 
-        MOCK["🏪 Mock Restaurant API\n─────────────\nPython 3.13 / FastAPI\n─────────────\nЭмулирует логику\nресторана-партнёра.\nПринимает вебхуки,\nобновляет статус заказа."]
+        MOCK[" Mock Restaurant API\n\nPython 3.13 / FastAPI\n\nЭмулирует логику\nресторана-партнёра.\nПринимает вебхуки,\nобновляет статус заказа."]
     end
 
     USER -- "HTTPS / Browser" --> WEB
@@ -102,45 +102,45 @@ flowchart TD
 
 ---
 
-## 🧩 Архитектура приложения — Модульный монолит
+## Архитектура приложения — Модульный монолит
 
 Выбранная архитектура — **модульный монолит** (Modular Monolith).  
 Весь код Main API находится в одном процессе и одном репозитории, но разделён на **независимые модули** с чёткими границами ответственности.
 
-> 📄 Подробное обоснование выбора: [ADR-002](./docs/adr/ADR-002-modular-monolith.md)
+> Подробное обоснование выбора: [ADR-002](./docs/adr/ADR-002-modular-monolith.md)
 
 ### Структура модулей
 
 ```
 app/
-├── restaurants/        # Модуль: заведения
-│   ├── router.py       # GET /restaurants, GET /restaurants/{id}
-│   ├── service.py      # Бизнес-логика
-│   ├── models.py       # SQLAlchemy-модель Restaurant
-│   └── schemas.py      # Pydantic-схемы
-│
-├── menu_items/         # Модуль: позиции меню
-│   ├── router.py       # GET /restaurants/{id}/menu
-│   ├── service.py
-│   ├── models.py       # SQLAlchemy-модель MenuItem
-│   └── schemas.py
-│
-├── orders/             # Модуль: заказы
-│   ├── router.py       # POST /orders, GET /orders/{id}, PATCH /orders/{id}/status
-│   ├── service.py      # Создание заказа + отправка вебхука
-│   ├── models.py       # SQLAlchemy-модель Order
-│   └── schemas.py
-│
-├── order_items/        # Модуль: позиции заказа
-│   ├── models.py       # SQLAlchemy-модель OrderItem
-│   └── schemas.py
-│
-├── core/               # Ядро: конфигурация, БД, зависимости
-│   ├── config.py       # pydantic-settings
-│   ├── database.py     # Async SQLAlchemy engine + session
-│   └── dependencies.py
-│
-└── main.py             # Точка входа FastAPI-приложения
+ restaurants/        # Модуль: заведения
+    router.py       # GET /restaurants, GET /restaurants/{id}
+    service.py      # Бизнес-логика
+    models.py       # SQLAlchemy-модель Restaurant
+    schemas.py      # Pydantic-схемы
+
+ menu_items/         # Модуль: позиции меню
+    router.py       # GET /restaurants/{id}/menu
+    service.py
+    models.py       # SQLAlchemy-модель MenuItem
+    schemas.py
+
+ orders/             # Модуль: заказы
+    router.py       # POST /orders, GET /orders/{id}, PATCH /orders/{id}/status
+    service.py      # Создание заказа + отправка вебхука
+    models.py       # SQLAlchemy-модель Order
+    schemas.py
+
+ order_items/        # Модуль: позиции заказа
+    models.py       # SQLAlchemy-модель OrderItem
+    schemas.py
+
+ core/               # Ядро: конфигурация, БД, зависимости
+    config.py       # pydantic-settings
+    database.py     # Async SQLAlchemy engine + session
+    dependencies.py
+
+ main.py             # Точка входа FastAPI-приложения
 ```
 
 ### Взаимодействие модулей
@@ -175,9 +175,9 @@ flowchart LR
 
 ---
 
-## 🗄️ Схема базы данных
+## Схема базы данных
 
-> 📄 Подробное обоснование: [ADR-003](./docs/adr/ADR-003-database-schema.md)
+> Подробное обоснование: [ADR-003](./docs/adr/ADR-003-database-schema.md)
 
 ### Выбор технологий
 
@@ -301,9 +301,9 @@ PENDING -> CONFIRMED -> COOKING -> READY -> DELIVERED
 
 ---
 
-## 🛠️ Технический стек
+## Технический стек
 
-> 📄 Подробное обоснование: [ADR-001](./docs/adr/ADR-001-tech-stack.md)
+> Подробное обоснование: [ADR-001](./docs/adr/ADR-001-tech-stack.md)
 
 ### Основной стек
 
@@ -359,7 +359,7 @@ FastAPI автоматически генерирует интерактивну
 
 ---
 
-## 📋 ADR — Architectural Decision Records
+## ADR — Architectural Decision Records
 
 Все архитектурные решения задокументированы в директории [`docs/adr/`](./docs/adr/):
 
@@ -373,7 +373,7 @@ FastAPI автоматически генерирует интерактивну
 
 ---
 
-## 🚀 Запуск проекта
+## Запуск проекта
 
 ### Предварительные требования
 
@@ -458,38 +458,38 @@ docker compose down -v
 
 ---
 
-## 📁 Структура репозитория
+## Структура репозитория
 
 ```
 avito-kitchen/
-├── app/                          # Main API (модульный монолит)
-│   ├── restaurants/              # Модуль: заведения
-│   ├── menu_items/               # Модуль: позиции меню
-│   ├── orders/                   # Модуль: заказы
-│   ├── order_items/              # Модуль: позиции заказа
-│   ├── core/                     # Конфигурация, БД, зависимости
-│   └── main.py                   # Точка входа
-├── mock_restaurant/              # Mock Restaurant API
-│   └── main.py
-├── alembic/                      # Миграции БД
-│   └── versions/
-├── tests/                        # Тесты
-├── docs/
-│   └── adr/                      # Architectural Decision Records
-├── .github/
-│   └── workflows/                # CI/CD пайплайны
-├── docker-compose.yml
-├── Dockerfile                    # Main API
-├── Dockerfile.mock               # Mock Restaurant API
-├── pyproject.toml                # Poetry зависимости
-├── alembic.ini
-├── .env.example
-└── README.md
+ app/                          # Main API (модульный монолит)
+    restaurants/              # Модуль: заведения
+    menu_items/               # Модуль: позиции меню
+    orders/                   # Модуль: заказы
+    order_items/              # Модуль: позиции заказа
+    core/                     # Конфигурация, БД, зависимости
+    main.py                   # Точка входа
+ mock_restaurant/              # Mock Restaurant API
+    main.py
+ alembic/                      # Миграции БД
+    versions/
+ tests/                        # Тесты
+ docs/
+    adr/                      # Architectural Decision Records
+ .github/
+    workflows/                # CI/CD пайплайны
+ docker-compose.yml
+ Dockerfile                    # Main API
+ Dockerfile.mock               # Mock Restaurant API
+ pyproject.toml                # Poetry зависимости
+ alembic.ini
+ .env.example
+ README.md
 ```
 
 ---
 
-## ⚠️ Допустимые упрощения MVP
+## Допустимые упрощения MVP
 
 Следующие вещи намеренно **не реализованы** в MVP и могут быть добавлены при масштабировании:
 
