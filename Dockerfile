@@ -5,11 +5,12 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir poetry \
     && poetry config virtualenvs.create false \
-    && poetry install --only main --no-root
+    && poetry install --no-root
 
 COPY alembic/ ./alembic/
 COPY alembic.ini ./
 COPY app/ ./app/
+COPY tests/ ./tests/
 
 EXPOSE 8000
 
