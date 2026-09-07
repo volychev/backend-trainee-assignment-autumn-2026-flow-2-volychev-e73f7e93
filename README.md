@@ -138,7 +138,8 @@ app/
  core/               # Ядро: конфигурация, БД, зависимости
     config.py       # pydantic-settings
     database.py     # Async SQLAlchemy engine + session
-    dependencies.py
+    dependencies.py # FastAPI зависимости (get_db)
+    exceptions.py   # Кастомные доменные исключения (ADR-007)
 
  main.py             # Точка входа FastAPI-приложения
 ```
@@ -370,6 +371,8 @@ FastAPI автоматически генерирует интерактивну
 | ADR-003 | Разработка схемы базы данных | [ADR-003](./docs/adr/ADR-003-database-schema.md) |
 | ADR-004 | Использование HTTP Webhooks вместо брокера сообщений | [ADR-004](./docs/adr/ADR-004-webhooks-vs-broker.md) |
 | ADR-005 | Отказ от сервиса авторизации (X-User-ID) | [ADR-005](./docs/adr/ADR-005-no-auth-service.md) |
+| ADR-006 | Стратегия тестирования | [ADR-006](./docs/adr/ADR-006-testing-strategy.md) |
+| ADR-007 | Кастомные исключения и их обработка | [ADR-007](./docs/adr/ADR-007-custom-exceptions.md) |
 
 ---
 
@@ -396,15 +399,19 @@ docker compose up --build
 
 ### Конфигурация `.env`
 
+В файле `.env.example` представлены настройки для локального запуска (без Docker), поэтому в качестве хостов там указан `localhost`.
+Для запуска через Docker Compose эти переменные будут автоматически переопределены внутри контейнеров на внутренние имена (например, `postgres` или `mock-restaurant`).
+
 ```dotenv
 # Main API
-DATABASE_URL=postgresql+asyncpg://kitchen:kitchen@postgres:5432/kitchen_db
-MOCK_RESTAURANT_WEBHOOK_URL=http://mock-restaurant:8001/webhook/order
+DATABASE_URL=postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_db
+TEST_DATABASE_URL=postgresql+asyncpg://kitchen:kitchen@localhost:5432/kitchen_db
+MOCK_RESTAURANT_WEBHOOK_URL=http://localhost:8001/webhook/order
 APP_HOST=0.0.0.0
 APP_PORT=8000
 
 # Mock Restaurant API
-MAIN_API_URL=http://main-api:8000
+MAIN_API_URL=http://localhost:8000
 MOCK_HOST=0.0.0.0
 MOCK_PORT=8001
 
@@ -446,8 +453,8 @@ docker compose logs -f main-api
 # Применить миграции вручную
 docker compose exec main-api alembic upgrade head
 
-# Запустить тесты
-docker compose exec main-api pytest
+# Запустить интеграционные тесты (используется TEST_DATABASE_URL)
+docker compose exec main-api pytest -v
 
 # Остановить все сервисы
 docker compose down
@@ -471,16 +478,16 @@ avito-kitchen/
     main.py                   # Точка входа
  mock_restaurant/              # Mock Restaurant API
     main.py
+    Dockerfile                # Dockerfile для Mock API
  alembic/                      # Миграции БД
     versions/
- tests/                        # Тесты
+ tests/                        # Интеграционные тесты
  docs/
     adr/                      # Architectural Decision Records
  .github/
     workflows/                # CI/CD пайплайны
  docker-compose.yml
- Dockerfile                    # Main API
- Dockerfile.mock               # Mock Restaurant API
+ Dockerfile                    # Dockerfile для Main API
  pyproject.toml                # Poetry зависимости
  alembic.ini
  .env.example
